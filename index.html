@@ -13,8 +13,8 @@
                 text-align: center;
             }
             #scanner {
-                width: 400px;
-                height: 200px;
+                width: 200px;
+                height: 100px;
                 background: white;
             }
             button {
@@ -32,14 +32,21 @@
     <body>
 
         <div id="scanner"></div>
-        <button onclick="startScanner()">Scan Barcode</button>
+        <div>
+            <button onclick="startScanner()">Scan Barcode</button>
+            <button onclick="toggleMode()">Mode: <span id="modeLabel">Auto</span></button>
+            <button id="captureBtn" onclick="manualCapture()" style="display:none;">Capture</button>
+        </div>
+
         <div id="result">No scan yet</div>
 
         <script type="text/javascript">
             let scanning = false;
+            let autoMode = true;
+            let lastDetectedCode = null;
 
             function startScanner() {
-                if(scanning) return;
+                if (scanning) return;
 
                 Quagga.init({
                     inputStream: {
@@ -49,10 +56,11 @@
                             facingMode: "environment"
                         }
                     },
+                    locator: {
+                        halfSample: true
+                    },
                     decoder: {
-                        readers: ["code_39_reader"],
-                        locator: { halfSample: true },
-                        numOfWorkers: 2
+                        readers: ["code_39_reader"]
                     }
                 }, function(err) {
                     if (err) {
@@ -67,17 +75,43 @@
                 Quagga.onDetected(function(result) {
                     const code = result.codeResult.code;
 
-                    document.getElementById("result").innerText = code;
+                    // Always store latest detected code
+                    lastDetectedCode = code;
 
-                    // Send value to Jotform
-                    JFCustomWidget.sendData({
-                        value: code
-                    });
-
-                    // Stop after successful scan
-                    Quagga.stop();
-                    scanning = false;
+                    if (autoMode) {
+                        finalizeScan(code);
+                    } else {
+                        // Show preview only
+                        document.getElementById("result").innerText = "Detected: " + code;
+                    }
                 });
+            }
+
+            function toggleMode() {
+                autoMode = !autoMode;
+
+                document.getElementById("modeLabel").innerText = autoMode ? "Auto" : "Manual";
+                document.getElementById("captureBtn").style.display = autoMode ? "none" : "inline-block";
+            }
+
+            function manualCapture() {
+                if (!lastDetectedCode) {
+                    alert("No barcode detected yet.");
+                    return;
+                }
+
+                finalizeScan(lastDetectedCode);
+            }
+
+            function finalizeScan(code) {
+                document.getElementById("result").innerText = "Scanned: " + code;
+
+                JFCustomWidget.sendData({
+                    value: code
+                });
+
+                Quagga.stop();
+                scanning = false;
             }
         </script>
     </body>
