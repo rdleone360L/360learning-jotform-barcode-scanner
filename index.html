@@ -13,8 +13,8 @@
                 text-align: center;
             }
             #scanner {
-                width: 50%;
-                height: 50%;
+                width: 400px;
+                height: 200px;
                 background: white;
             }
             button {
@@ -32,7 +32,7 @@
     <body>
 
         <div id="scanner"></div>
-        <button onclick="startScanner()">Start Scanning</button>
+        <button onclick="startScanner()">Scan Barcode</button>
         <div id="result">No scan yet</div>
 
         <script type="text/javascript">
@@ -50,7 +50,9 @@
                         }
                     },
                     decoder: {
-                        readers: ["code_39_reader"]
+                        readers: ["code_39_reader"],
+                        locator: { halfSample: true },
+                        numOfWorkers: 2
                     }
                 }, function(err) {
                     if (err) {
