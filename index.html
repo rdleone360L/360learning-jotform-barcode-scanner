@@ -4,6 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Pass/Fail Table</title>
+        <script src="https://serratus.github.io/quaggaJS/examples/js/quagga.min.js"></script>
         <script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
         <style>
             body {
@@ -14,6 +15,14 @@
                 flex-direction: column;
                 align-items: center;
             }
+            body div {
+                padding-bottom: 1rem;
+            }
+            /* button {
+                margin-top: 10px;
+                padding: 10px 20px;
+                font-size: 16px;
+            } */
             table, th, td {
                 border: 1px solid black;
                 border-collapse: collapse;
@@ -30,17 +39,43 @@
             .email-col {
                 text-align: start;
             }
+            #scanner {
+                max-width: 400px;
+                max-height: max-content;
+                background: white;
+            }
+            #scanner video {
+                width: 100%;
+                height: auto;
+                position: relative;
+                z-index: 0;
+            }
+            #scanner canvas {
+                display: none;
+            }
+            #result {
+                margin-top: 10px;
+                font-size: 18px;
+                font-weight: bold;
+            } 
             #barcode-id {
                 padding: 4px 12px 12px 12px;
             }
         </style>
     </head>
     <body>
-        <label for="barcode-id">Scan an Employee ID</label>
-        <div id="barcode-id">
-            <input type="text" name="barcode-id-input" id="barcode-id-input"></select>
-            <button id="barcode-id-btn">Submit</button>
+        <label for="text-input-control">Enter Employee ID</label>
+        <div id="text-input-control">
+            <input type="text" name="id-input" id="id-input"></select>
+            <button id="id-btn">Submit</button>
         </div>
+        <div id="barcode-control">
+            <button id="start-scan">Scan Barcode</button>
+            <button id="scan-mode" onclick="toggleMode()">Mode: <span id="modeLabel">Auto</span></button>
+            <button id="scan-capture" onclick="manualCapture()" style="display:none;">Capture</button>
+        </div>
+        <div id="scanner"></div>
+        <div id="result">No scan yet</div>
         <table id="passed-table">
             <thead>
                 <tr>
@@ -52,11 +87,119 @@
         </table>
 
         <script type="text/javascript">
-            const idInput = document.querySelector('#barcode-id-input');
-            const idBtn = document.querySelector('#barcode-id-btn');
+            const scanBox = document.querySelector('#scanner');
+            const idInput = document.querySelector('#id-input');
+            const idBtn = document.querySelector('#id-btn');
             const passedTblBody = document.querySelector('#passed-body');
 
             let data = [];
+            let scanning = false;
+            let autoMode = true;
+            let lastDetectedCode = null;
+
+            // --- API CALLS ---
+
+            async function getUserById(id) {
+                try {
+                    const workatoUserEndpoint = `${WORKATO_GET_USER_URL}?id=${id}`;
+                    const res = await fetch(workatoUserEndpoint, { 
+                        method: 'GET',
+                        headers: {
+                            'api-token': WORKATO_API_TOKEN,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    
+                    const userData = await res.json();
+                    return userData || {}; 
+
+                } catch(error) {
+                    console.error("User Fetch Failed:", error);
+                    return [];
+                }
+            }
+
+            // --- SCANNER FUNCTIONS ---
+
+            function startScanner() {
+                if (scanning) return;
+                document.getElementById("result").textContent = "No scan yet";
+
+                Quagga.init({
+                    inputStream: {
+                        type: "LiveStream",
+                        target: document.querySelector('#scanner'),
+                        constraints: {
+                            width: { min: 640, ideal: 1280 },
+                            height: { min: 480, ideal: 720 },
+                            facingMode: "environment",
+                            aspectRatio: { min: 1, max: 2 }
+                        }
+                    },
+                    locator: {
+                        halfSample: true
+                    },
+                    decoder: {
+                        readers: ["code_39_reader", "code_128_reader"]
+                    }
+                }, function(err) {
+                    if (err) {
+                        console.error(err);
+                        alert("Camera error");
+                        return;
+                    }
+                    Quagga.start();
+                    scanning = true;
+                });
+
+                Quagga.onDetected(function(result) {
+                    const code = result.codeResult.code;
+
+                    // Always store latest detected code
+                    lastDetectedCode = code;
+
+                    if (autoMode) {
+                        finalizeScan(code);
+                    } else {
+                        // Show preview only
+                        document.getElementById("result").innerText = "Detected: " + code;
+                    }
+                });
+            }
+
+            function toggleMode() {
+                autoMode = !autoMode;
+
+                document.getElementById("modeLabel").innerText = autoMode ? "Auto" : "Manual";
+                document.getElementById("scan-capture").style.display = autoMode ? "none" : "inline-block";
+            }
+
+            function manualCapture() {
+                if (!lastDetectedCode) {
+                    alert("No barcode detected yet.");
+                    return;
+                }
+
+                finalizeScan(lastDetectedCode);
+            }
+
+            function finalizeScan(code) {
+                document.getElementById("result").textContent = "Scanned: " + code;
+
+                JFCustomWidget.sendData({
+                    value: code
+                });
+
+                syncTable(code);
+
+                Quagga.stop();
+                scanning = false;
+                scanBox.innerHTML = "";
+            }
+
+            // --- TABLE FUNCTIONS ---
 
             function syncTable(entry) {
                 if(!data.map(d => d.email).includes(entry)) {
@@ -106,6 +249,10 @@
                 idInput.value = "";
                 console.log(JSON.stringify(data));
             });
+
+            document.querySelector('#start-scan').addEventListener('click', () => {
+                startScanner();
+            })
 
             JFCustomWidget.subscribe("submit", async function() {
                 const formData = data;
