@@ -64,7 +64,7 @@
         </style>
     </head>
     <body>
-        <label for="text-input-control">Enter Employee ID</label>
+        <label for="text-input-control">Add More Employees by ID</label>
         <div id="text-input-control">
             <input type="text" name="id-input" id="id-input"></select>
             <button id="id-btn">Submit</button>
@@ -252,15 +252,28 @@
 
             document.querySelector('#start-scan').addEventListener('click', () => {
                 startScanner();
-            })
+            });
 
-            JFCustomWidget.subscribe("submit", async function() {
-                const formData = data;
-                const result = {
-                    valid: data ? true : false,
-                    value: data ? JSON.stringify(data) : ""
-                };
-                JFCustomWidget.sendSubmit(result);
+            // --- JOTFORM WIDGET INITIALIZATION ---
+
+            JFCustomWidget.subscribe("ready", async function(data) {
+                // Store prefilled email into widget
+                JFCustomWidget.getFieldsValueByName(["learners"], async function(res) {
+                    let items = (res && res.data) || [];
+                    let learners = items[0].value.split(",");
+                    for(entry of learners) {
+                        syncTable(entry);
+                    }
+                });
+
+                JFCustomWidget.subscribe("submit", async function() {
+                    const formData = data;
+                    const result = {
+                        valid: data ? true : false,
+                        value: data ? JSON.stringify(data) : ""
+                    };
+                    JFCustomWidget.sendSubmit(result);
+                });
             });
         </script>
     </body>
