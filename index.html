@@ -62,7 +62,7 @@
 
             async function getUserById(id, type) {
                 try {
-                    const workatoUserEndpoint = `${WORKATO_GET_USER_URL}?id=${id}&type=${type}`;
+                    const workatoUserEndpoint = `${WORKATO_GET_USER_URL}/${id}?type=${type}`;
                     const res = await fetch(workatoUserEndpoint, { 
                         method: 'GET',
                         headers: {
