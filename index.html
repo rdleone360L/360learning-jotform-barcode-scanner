@@ -36,9 +36,6 @@
             th {
                 background-color: rgb(57, 211, 78);
             }
-            .email-col {
-                text-align: start;
-            }
         </style>
     </head>
     <body>
@@ -53,15 +50,19 @@
         </table>
 
         <script type="text/javascript">
+            // --- CONFIGURATION ---
+            const WORKATO_GET_USER_URL = "https://apim.eu.workato.com/360learning_eu/jotform-poc-v1/users";
+            const WORKATO_API_TOKEN = "b2250c7091ab1096be02367b2304c9b427542f660a61433865bb3d9c0b6a8a65";
+
             const passedTblBody = document.querySelector('#passed-body');
 
             let data = [];
 
             // --- API CALLS ---
 
-            async function getUserById(id) {
+            async function getUserById(id, type) {
                 try {
-                    const workatoUserEndpoint = `${WORKATO_GET_USER_URL}?id=${id}`;
+                    const workatoUserEndpoint = `${WORKATO_GET_USER_URL}?id=${id}&type=${type}`;
                     const res = await fetch(workatoUserEndpoint, { 
                         method: 'GET',
                         headers: {
@@ -83,24 +84,28 @@
 
             // --- TABLE FUNCTIONS ---
 
-            function syncTable(entry) {
-                if(!data.map(d => d.email).includes(entry)) {
+            async function syncTable(entry) {
+                if(!data.map(d => d.id).includes(entry)) {
+                    let user = await getUserById(entry, "internal");
+
                     data.push({
-                        email: entry,
-                        passed: false
+                        id: entry,
+                        email: user.email,
+                        name: `${user.firstName || ""} ${user.lastName || ""}`,
+                        passed: true
                     });
                     renderTable();
                 }
             }
 
-            function renderTable() {
+            async function renderTable() {
                 passedTblBody.innerHTML = "";
 
                 data.forEach((row, index) => {
                     const tr = document.createElement("tr");
 
                     const tdEmail = document.createElement("td");
-                    tdEmail.textContent = data[index].email;
+                    tdEmail.textContent = data[index].id;
 
                     const tdCheckbox = document.createElement("td");
                     const checkbox = document.createElement("input");
