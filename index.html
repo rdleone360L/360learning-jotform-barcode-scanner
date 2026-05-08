@@ -90,8 +90,8 @@
 
                     data.push({
                         id: entry,
-                        email: user.email,
-                        name: `${user.firstName || ""} ${user.lastName || ""}`,
+                        email: user.user.email,
+                        name: `${user.user.firstName || ""} ${user.user.lastName || ""}`,
                         passed: true
                     });
                     renderTable();
@@ -104,8 +104,8 @@
                 data.forEach((row, index) => {
                     const tr = document.createElement("tr");
 
-                    const tdEmail = document.createElement("td");
-                    tdEmail.textContent = data[index].id;
+                    const tLearner = document.createElement("td");
+                    tLearner.textContent = data[index].name;
 
                     const tdCheckbox = document.createElement("td");
                     const checkbox = document.createElement("input");
@@ -116,7 +116,7 @@
                     });
 
                     tdCheckbox.appendChild(checkbox);
-                    tr.appendChild(tdEmail);
+                    tr.appendChild(tLearner);
                     tr.appendChild(tdCheckbox);
                     passedTblBody.appendChild(tr);
                 });
