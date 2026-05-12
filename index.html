@@ -56,7 +56,7 @@
 
             const passedTblBody = document.querySelector('#passed-body');
 
-            let data = [];
+            let tData = [];
 
             // --- API CALLS ---
 
@@ -85,10 +85,10 @@
             // --- TABLE FUNCTIONS ---
 
             async function syncTable(entry) {
-                if(!data.map(d => d.id).includes(entry)) {
+                if(!tData.map(d => d.id).includes(entry)) {
                     let user = await getUserById(entry, "internal");
 
-                    data.push({
+                    tData.push({
                         id: entry,
                         email: user.user.email,
                         name: `${user.user.firstName || ""} ${user.user.lastName || ""}`,
@@ -101,18 +101,18 @@
             async function renderTable() {
                 passedTblBody.innerHTML = "";
 
-                data.forEach((row, index) => {
+                tData.forEach((row, index) => {
                     const tr = document.createElement("tr");
 
                     const tLearner = document.createElement("td");
-                    tLearner.textContent = data[index].name;
+                    tLearner.textContent = `${tData[index].name} (${tData[index].id})`;
 
                     const tdCheckbox = document.createElement("td");
                     const checkbox = document.createElement("input");
                     checkbox.type = "checkbox";
-                    checkbox.checked = data[index].passed;
+                    checkbox.checked = tData[index].passed;
                     checkbox.addEventListener('input', () => {
-                        data[index].passed = !data[index].passed;
+                        tData[index].passed = !tData[index].passed;
                     });
 
                     tdCheckbox.appendChild(checkbox);
@@ -135,10 +135,10 @@
                 });
 
                 JFCustomWidget.subscribe("submit", async function() {
-                    const formData = data;
+                    const formData = tData;
                     const result = {
-                        valid: data ? true : false,
-                        value: data ? JSON.stringify(data) : ""
+                        valid: formData ? true : false,
+                        value: formData ? JSON.stringify(formData) : ""
                     };
                     JFCustomWidget.sendSubmit(result);
                 });
