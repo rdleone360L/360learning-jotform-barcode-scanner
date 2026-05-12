@@ -90,6 +90,7 @@
 
                     tData.push({
                         id: entry,
+                        external_id: user.external_id,
                         email: user.user.email,
                         name: `${user.user.firstName || ""} ${user.user.lastName || ""}`,
                         passed: true
@@ -105,7 +106,7 @@
                     const tr = document.createElement("tr");
 
                     const tLearner = document.createElement("td");
-                    tLearner.textContent = `${tData[index].name} (${tData[index].id})`;
+                    tLearner.textContent = `${tData[index].name} (${tData[index].external_id})`;
 
                     const tdCheckbox = document.createElement("td");
                     const checkbox = document.createElement("input");
